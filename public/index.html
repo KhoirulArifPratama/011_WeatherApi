@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas Bumi</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;600&family=Manrope:wght@400;500;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --accent: #8ec5ff;
+            --ink: #eef3ff;
+            --muted: #93a4cc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        html,
+        body {
+            background: #02030a;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            overflow-x: hidden;
+            background: radial-gradient(900px 600px at 15% 20%, rgba(96, 60, 190, .32), transparent 70%),
+                radial-gradient(800px 600px at 88% 75%, rgba(30, 90, 200, .28), transparent 70%),
+                radial-gradient(600px 400px at 60% 5%, rgba(190, 60, 140, .16), transparent 70%), #02030a;
+        }
+
+        .galaxy {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            width: 170vmax;
+            height: 34vmax;
+            z-index: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%) rotate(-28deg);
+            filter: blur(46px);
+            opacity: .9;
+            background: radial-gradient(closest-side, rgba(170, 180, 255, .20), rgba(120, 90, 220, .10) 55%, transparent 100%);
+        }
+
+        #stars {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 32px 24px 48px;
+            display: grid;
+            gap: 28px;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .globe {
+            position: relative;
+            aspect-ratio: 1;
+            width: 100%;
+            max-width: 580px;
+            margin: 0 auto;
+        }
+
+        .globe canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        .globe canvas:active {
+            cursor: grabbing;
+        }
+
+        .tools {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: .82rem;
+        }
+
+        h1 {
+            font-family: "Unbounded", sans-serif;
+            font-weight: 300;
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            line-height: 1.1;
+            letter-spacing: -.02em;
+        }
+
+        h1 b {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .sub {
+            color: var(--muted);
+            margin: 10px 0 22px;
+        }
+
+        .search {
+            position: relative;
+            z-index: 30;
+        }
+
+        form {
+            display: flex;
+            gap: 8px;
+            padding: 6px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .16);
+            backdrop-filter: blur(10px);
+        }
+
+        form label {
+            display: flex;
+            align-items: center;
+            padding-left: 14px;
+            color: var(--muted);
+            font-size: .9rem;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: 0;
+            outline: 0;
+            color: var(--ink);
+            font: 500 1.05rem "Manrope";
+            padding: 12px 6px;
+        }
+
+        input::placeholder {
+            color: #6478a3;
+        }
+
+        button {
+            border: 0;
+            border-radius: 11px;
+            padding: 0 22px;
+            font: 700 .95rem "Manrope";
+            cursor: pointer;
+            background: var(--accent);
+            color: #04121f;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        form:focus-within {
+            border-color: var(--accent);
+        }
+
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid #fff;
+            outline-offset: 2px;
+        }
+
+        .sug {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 8px);
+            z-index: 40;
+            list-style: none;
+            padding: 6px;
+            margin: 0;
+            border-radius: 16px;
+            background: rgba(8, 12, 30, .97);
+            border: 1px solid rgba(255, 255, 255, .18);
+            display: none;
+            max-height: 340px;
+            overflow-y: auto;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
+        }
+
+        .sug.show {
+            display: block;
+        }
+
+        .sug li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .sug li:hover,
+        .sug li[aria-selected="true"] {
+            background: rgba(142, 197, 255, .16);
+        }
+
+        .sug li.info {
+            cursor: default;
+            color: var(--muted);
+        }
+
+        .sug li.info:hover {
+            background: none;
+        }
+
+        .sug .txt {
+            min-width: 0;
+        }
+
+        .sug .n {
+            display: block;
+            font-weight: 700;
+        }
+
+        .sug .d {
+            display: block;
+            color: var(--muted);
+            font-size: .82rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sug .t {
+            flex: none;
+            font-size: .72rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(142, 197, 255, .16);
+            color: var(--accent);
+        }
+
+        .sug .t.prov {
+            background: rgba(255, 180, 120, .16);
+            color: #ffc38a;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            border: 1px solid rgba(255, 255, 255, .18);
+            background: rgba(255, 255, 255, .06);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font: 500 .82rem "Manrope";
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            filter: none;
+        }
+
+        .chip.small {
+            padding: 5px 12px;
+            font-size: .78rem;
+        }
+
+        .alert {
+            display: none;
+            margin-top: 12px;
+            color: #ffb4b4;
+            font-size: .92rem;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .place {
+            margin-top: 24px;
+            font-family: "Unbounded", sans-serif;
+            font-weight: 300;
+            font-size: clamp(1.2rem, 2.4vw, 1.6rem);
+            line-height: 1.3;
+            min-height: 2.6em;
+        }
+
+        .data {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: rgba(255, 255, 255, .14);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .cell {
+            background: rgba(4, 6, 18, .82);
+            padding: 15px 17px;
+        }
+
+        .cell.wide {
+            grid-column: 1 / -1;
+        }
+
+        .cell small {
+            display: block;
+            color: var(--muted);
+            font-size: .78rem;
+            margin-bottom: 3px;
+        }
+
+        .cell span {
+            font-weight: 700;
+            font-size: 1.1rem;
+            word-break: break-word;
+        }
+
+        .jamrow {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .jam {
+            font-family: "Unbounded", sans-serif;
+            font-weight: 300;
+            font-size: 1.9rem;
+            letter-spacing: -.02em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            font-size: .74rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .badge.siang {
+            background: rgba(255, 214, 102, .2);
+            color: #ffd666;
+        }
+
+        .badge.malam {
+            background: rgba(140, 150, 255, .2);
+            color: #b4bcff;
+        }
+
+        .tgl {
+            display: block;
+            color: var(--muted);
+            font-size: .85rem;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .acts {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .acts a {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .loading .cell span,
+        .loading .place {
+            opacity: .3;
+        }
+
+        @media (max-width: 860px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+
+            .globe {
+                max-width: 400px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="galaxy"></div>
+    <canvas id="stars"></canvas>
+
+    <div class="wrap" id="wrap">
+        <div>
+            <div class="globe" id="globeBox"><canvas id="globe" aria-label="Globe bumi 3D yang bisa diputar"></canvas>
+            </div>
+            <div class="tools">
+                <span class="hint" id="hint">Seret untuk memutar &bull; scroll untuk zoom</span>
+                <button class="chip small" id="btnSun" type="button">Cahaya nyata: aktif</button>
+            </div>
+        </div>
+
+        <section>
+            <h1>Jelajahi <b>bumi</b> dari titik mana pun.</h1>
+            <p class="sub">Ketik nama kota atau provinsi, lalu pilih dari daftar yang muncul.</p>
+
+            <div class="search">
+                <form id="form" autocomplete="off">
+                    <label for="lokasi">Lokasi:</label>
+                    <input id="lokasi" placeholder="Ketik nama kota atau provinsi, misal: ban" autocomplete="off"
+                        required role="combobox" aria-expanded="false" aria-controls="sug" aria-autocomplete="list" />
+                    <button id="btn" type="submit">Cari</button>
+                </form>
+                <ul class="sug" id="sug" role="listbox" aria-label="Saran lokasi"></ul>
+            </div>
+            <div class="chips" id="chips"></div>
+            <p class="alert" id="alert" role="alert"></p>
+
+            <p class="place" id="place"></p>
+
+            <div class="data">
+                <div class="cell wide">
+                    <small>Waktu lokal <span id="zona"></span></small>
+                    <div class="jamrow"><span class="jam" id="jam">--:--:--</span><span class="badge"
+                            id="status"></span></div>
+                    <span class="tgl" id="tgl"></span>
+                </div>
+                <div class="cell"><small>Negara</small><span id="negara">-</span></div>
+                <div class="cell"><small>Provinsi</small><span id="provinsi">-</span></div>
+                <div class="cell wide"><small>Kecamatan</small><span id="kecamatan">-</span></div>
+                <div class="cell"><small>Longitude</small><span id="lon">-</span></div>
+                <div class="cell"><small>Latitude</small><span id="lat">-</span></div>
+            </div>
+
+            <div class="acts">
+                <button class="chip" id="salin" type="button">Salin koordinat</button>
+                <a class="chip" id="peta" href="#" target="_blank" rel="noopener">Buka di Google Maps</a>
+            </div>
+        </section>
+    </div>
+
+    <!-- ===== SKRIP 1: PENCARIAN, SARAN, JAM, RIWAYAT (mandiri, tidak bergantung globe) ===== -->
+    <script>
+        var $ = function (id) { return document.getElementById(id); };
+        var sekarang = null;   // { lon, lat, kota, zona }
+
+        function fmt(v, p, n) { return Math.abs(v).toFixed(5) + "\u00B0 " + (v >= 0 ? p : n); }
+
+        /* --- jam lokal --- */
+        function tick() {
+            if (!sekarang || !sekarang.zona) { $("jam").textContent = "--:--:--"; return; }
+            try {
+                var z = sekarang.zona.nama, now = new Date();
+                $("jam").textContent = new Intl.DateTimeFormat("id-ID", { timeZone: z, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now).replace(/\./g, ":");
+                $("tgl").textContent = new Intl.DateTimeFormat("id-ID", { timeZone: z, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now);
+                var h = parseInt(new Intl.DateTimeFormat("en-GB", { timeZone: z, hour: "2-digit", hour12: false }).format(now), 10) % 24;
+                var siang = h >= 6 && h < 18;
+                $("status").textContent = siang ? "Siang" : "Malam";
+                $("status").className = "badge " + (siang ? "siang" : "malam");
+            } catch (e) { }
+        }
+        setInterval(tick, 1000);
+
+        /* --- riwayat --- */
+        function bacaRiwayat() { try { return JSON.parse(localStorage.getItem("riwayat") || "[]"); } catch (e) { return []; } }
+        function simpanRiwayat(d) {
+            var r = bacaRiwayat().filter(function (x) { return x.nama !== d.kota; });
+            r.unshift({ nama: d.kota, lon: d.longitude, lat: d.latitude });
+            try { localStorage.setItem("riwayat", JSON.stringify(r.slice(0, 5))); } catch (e) { }
+            gambarChips();
+        }
+        function gambarChips() {
+            var box = $("chips"); box.innerHTML = "";
+            var gps = document.createElement("button");
+            gps.type = "button"; gps.className = "chip"; gps.textContent = "Lokasi saya";
+            gps.addEventListener("click", lokasiSaya); box.appendChild(gps);
+            bacaRiwayat().forEach(function (r) {
+                var b = document.createElement("button");
+                b.type = "button"; b.className = "chip"; b.textContent = r.nama; b.title = r.nama;
+                b.addEventListener("click", function () { input.value = r.nama; cari(r.nama, r.lon, r.lat); });
+                box.appendChild(b);
+            });
+        }
+        function lokasiSaya() {
+            if (!navigator.geolocation) { tampilError("Browser tidak mendukung deteksi lokasi."); return; }
+            navigator.geolocation.getCurrentPosition(
+                function (p) { cari(p.coords.longitude + "," + p.coords.latitude, p.coords.longitude, p.coords.latitude); },
+                function () { tampilError("Izin lokasi ditolak. Aktifkan izin lokasi di browser."); },
+                { timeout: 10000 }
+            );
+        }
+        function tampilError(t) { $("alert").textContent = t; $("alert").classList.add("show"); }
+
+        /* --- ambil data lokasi --- */
+        async function cari(kota, lon, lat) {
+            $("alert").classList.remove("show");
+            $("wrap").classList.add("loading");
+            $("btn").disabled = true;
+            try {
+                var url = "/api/lokasi?kota=" + encodeURIComponent(kota);
+                if (lon != null && lat != null) url += "&lon=" + lon + "&lat=" + lat;
+                var res = await fetch(url);
+                var d = await res.json();
+                if (!res.ok) throw new Error(d.message || "Terjadi kesalahan");
+
+                $("place").textContent = d.kota;
+                $("negara").textContent = d.negara;
+                $("provinsi").textContent = d.provinsi;
+                $("kecamatan").textContent = d.kecamatan;
+                $("lon").textContent = fmt(d.longitude, "E", "W");
+                $("lat").textContent = fmt(d.latitude, "N", "S");
+                $("peta").href = "https://www.google.com/maps?q=" + d.latitude + "," + d.longitude;
+
+                sekarang = { lon: d.longitude, lat: d.latitude, kota: d.kota, zona: d.zona };
+                if (d.zona) {
+                    var o = d.zona.offset / 3600;
+                    $("zona").textContent = "(" + d.zona.nama + ", UTC" + (o >= 0 ? "+" : "") + o + ")";
+                } else { $("zona").textContent = ""; $("status").textContent = ""; $("tgl").textContent = ""; }
+                tick();
+                simpanRiwayat(d);
+                if (window.tandai) window.tandai(d.longitude, d.latitude);
+            } catch (err) {
+                tampilError(err.message);
+            } finally {
+                $("wrap").classList.remove("loading");
+                $("btn").disabled = false;
+            }
+        }
+
+        $("salin").addEventListener("click", function () {
+            if (!sekarang) return;
+            var teks = sekarang.lat.toFixed(5) + ", " + sekarang.lon.toFixed(5);
+            var ok = function () { $("salin").textContent = "Tersalin"; setTimeout(function () { $("salin").textContent = "Salin koordinat"; }, 1500); };
+            if (navigator.clipboard) navigator.clipboard.writeText(teks).then(ok);
+        });
+
+        /* --- saran lokasi --- */
+        var input = $("lokasi"), sugBox = $("sug");
+        var items = [], active = -1, timer = null, reqId = 0;
+
+        function tutup() { sugBox.classList.remove("show"); input.setAttribute("aria-expanded", "false"); active = -1; }
+        function tandaiAktif() {
+            var lis = sugBox.children;
+            for (var i = 0; i < lis.length; i++) lis[i].setAttribute("aria-selected", i === active ? "true" : "false");
+            if (lis[active]) lis[active].scrollIntoView({ block: "nearest" });
+        }
+        function tampilPesan(teks) {
+            sugBox.innerHTML = "";
+            var li = document.createElement("li"); li.className = "info"; li.textContent = teks;
+            sugBox.appendChild(li); sugBox.classList.add("show");
+        }
+        function tampilSaran() {
+            sugBox.innerHTML = "";
+            items.forEach(function (it, i) {
+                var li = document.createElement("li");
+                li.setAttribute("role", "option"); li.setAttribute("aria-selected", "false");
+                var txt = document.createElement("div"); txt.className = "txt";
+                var n = document.createElement("span"); n.className = "n"; n.textContent = it.nama;
+                var d = document.createElement("span"); d.className = "d"; d.textContent = it.lengkap;
+                txt.appendChild(n); txt.appendChild(d);
+                var t = document.createElement("span"); t.className = "t" + (it.tipe === "Provinsi" ? " prov" : ""); t.textContent = it.tipe;
+                li.appendChild(txt); li.appendChild(t);
+                li.addEventListener("mousedown", function (e) { e.preventDefault(); pilih(i); });
+                sugBox.appendChild(li);
+            });
+            active = -1; sugBox.classList.add("show"); input.setAttribute("aria-expanded", "true");
+        }
+        function pilih(i) {
+            var it = items[i]; if (!it) return;
+            input.value = it.lengkap; tutup();
+            cari(it.lengkap, it.longitude, it.latitude);
+        }
+
+        input.addEventListener("input", function () {
+            clearTimeout(timer);
+            var q = input.value.trim();
+            if (q.length < 2) { items = []; tutup(); return; }
+            timer = setTimeout(async function () {
+                var id = ++reqId;
+                tampilPesan("Mencari lokasi...");
+                try {
+                    var res = await fetch("/api/saran?q=" + encodeURIComponent(q));
+                    var data = await res.json();
+                    if (id !== reqId) return;
+                    if (!res.ok) { items = []; tampilPesan(data.message || "Saran tidak tersedia."); return; }
+                    items = data;
+                    if (!items.length) { tampilPesan("Tidak ada lokasi yang cocok."); return; }
+                    tampilSaran();
+                } catch (e) { tampilPesan("Tidak bisa terhubung ke server."); }
+            }, 250);
+        });
+        input.addEventListener("focus", function () { if (items.length && input.value.trim().length >= 2) tampilSaran(); });
+        input.addEventListener("keydown", function (e) {
+            var buka = sugBox.classList.contains("show") && items.length;
+            if (e.key === "ArrowDown" && items.length) {
+                e.preventDefault(); if (!sugBox.classList.contains("show")) tampilSaran();
+                active = (active + 1) % items.length; tandaiAktif();
+            } else if (e.key === "ArrowUp" && buka) {
+                e.preventDefault(); active = (active - 1 + items.length) % items.length; tandaiAktif();
+            } else if (e.key === "Enter" && buka && active >= 0) { e.preventDefault(); pilih(active); }
+            else if (e.key === "Escape") tutup();
+        });
+        input.addEventListener("blur", function () { setTimeout(tutup, 120); });
+        $("form").addEventListener("submit", function (e) {
+            e.preventDefault(); clearTimeout(timer); reqId++; tutup(); cari(input.value.trim());
+        });
+
+        gambarChips();
+        input.value = "Jakarta";
+        cari("Jakarta");
+    </script>
+
+    <!-- ===== SKRIP 2: LATAR BINTANG ===== -->
+    <script>
+        (function () {
+            try {
+                var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+                var cv = document.getElementById("stars"), c = cv.getContext("2d");
+                var w, h, stars = [], sh = [], mx = 0, my = 0, next = 2, last = 0;
+                var tints = ["255,255,255", "190,210,255", "255,225,200", "220,200,255"];
+                function init() {
+                    var dpr = Math.min(devicePixelRatio || 1, 2);
+                    w = innerWidth; h = innerHeight;
+                    cv.width = w * dpr; cv.height = h * dpr; c.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    stars = [];
+                    for (var i = 0, n = Math.floor(w * h / 3200); i < n; i++) {
+                        var z = Math.random();
+                        stars.push({
+                            x: Math.random() * w, y: Math.random() * h, z: z, r: 0.3 + z * z * 1.5,
+                            ph: Math.random() * 6.28, sp: 0.6 + Math.random() * 2.2, col: tints[(Math.random() * 4) | 0]
+                        });
+                    }
+                }
+                addEventListener("resize", init);
+                addEventListener("pointermove", function (e) { mx = e.clientX / w - 0.5; my = e.clientY / h - 0.5; });
+                function draw(ts) {
+                    var t = ts / 1000, dt = Math.min(0.05, t - last); last = t;
+                    c.clearRect(0, 0, w, h);
+                    stars.forEach(function (s) {
+                        if (!reduce) { s.x += s.z * 0.06; if (s.x > w + 5) s.x = -5; }
+                        var tw = reduce ? 0.8 : 0.55 + 0.45 * Math.sin(t * s.sp + s.ph);
+                        var px = s.x - mx * s.z * 26, py = s.y - my * s.z * 26;
+                        c.fillStyle = "rgba(" + s.col + "," + ((0.25 + s.z * 0.75) * tw) + ")";
+                        c.beginPath(); c.arc(px, py, s.r, 0, 6.283); c.fill();
+                        if (s.r > 1.35) {
+                            c.strokeStyle = "rgba(" + s.col + "," + (0.28 * tw) + ")"; c.lineWidth = 0.6;
+                            c.beginPath(); c.moveTo(px - s.r * 4, py); c.lineTo(px + s.r * 4, py);
+                            c.moveTo(px, py - s.r * 4); c.lineTo(px, py + s.r * 4); c.stroke();
+                        }
+                    });
+                    if (!reduce) {
+                        next -= dt;
+                        if (next <= 0) {
+                            next = 3 + Math.random() * 5;
+                            var a = (20 + Math.random() * 25) * Math.PI / 180;
+                            sh.push({ x: Math.random() * w * 0.9, y: Math.random() * h * 0.45, vx: Math.cos(a) * 900, vy: Math.sin(a) * 900, life: 0 });
+                        }
+                        sh = sh.filter(function (s) { return s.life < 0.9; });
+                        sh.forEach(function (s) {
+                            s.life += dt; s.x += s.vx * dt; s.y += s.vy * dt;
+                            var k = 1 - s.life / 0.9, L = 0.13;
+                            var g = c.createLinearGradient(s.x, s.y, s.x - s.vx * L, s.y - s.vy * L);
+                            g.addColorStop(0, "rgba(255,255,255," + k + ")"); g.addColorStop(1, "rgba(255,255,255,0)");
+                            c.strokeStyle = g; c.lineWidth = 1.8;
+                            c.beginPath(); c.moveTo(s.x, s.y); c.lineTo(s.x - s.vx * L, s.y - s.vy * L); c.stroke();
+                        });
+                    }
+                    requestAnimationFrame(draw);
+                }
+                init(); requestAnimationFrame(draw);
+            } catch (e) { console.warn("Latar bintang gagal:", e); }
+        })();
+    </script>
+
+    <!-- ===== SKRIP 3: GLOBE 3D + CAHAYA MATAHARI NYATA ===== -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        try {
+            var reduceG = matchMedia("(prefers-reduced-motion: reduce)").matches;
+            var canvas = document.getElementById("globe"), box = document.getElementById("globeBox");
+            var rad = Math.PI / 180;
+            var IMG = "https://cdn.jsdelivr.net/npm/three-globe/example/img/";
+
+            var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+            renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+            camera.position.z = 3.3;
+
+            var ambient = new THREE.AmbientLight(0xffffff, 0.3);
+            var sun = new THREE.DirectionalLight(0xffffff, 1.5);
+            scene.add(ambient, sun);
+
+            var loader = new THREE.TextureLoader();
+            loader.setCrossOrigin("anonymous");
+            var earth = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 96, 96),
+                new THREE.MeshPhongMaterial({
+                    color: 0x1b3a66,
+                    map: loader.load(IMG + "earth-blue-marble.jpg", function () { earth.material.color.set(0xffffff); earth.material.needsUpdate = true; }),
+                    bumpMap: loader.load(IMG + "earth-topology.png"), bumpScale: 0.04,
+                    specularMap: loader.load(IMG + "earth-water.png"), specular: new THREE.Color(0x335577), shininess: 18
+                })
+            );
+            scene.add(earth);
+
+            scene.add(new THREE.Mesh(
+                new THREE.SphereGeometry(1.14, 64, 64),
+                new THREE.ShaderMaterial({
+                    transparent: true, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+                    vertexShader: "varying vec3 n; void main(){ n = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+                    fragmentShader: "varying vec3 n; void main(){ float i = pow(0.68 - dot(n, vec3(0.0,0.0,1.0)), 3.0); gl_FragColor = vec4(0.25,0.6,1.0,1.0) * i; }"
+                })
+            ));
+
+            var marker = new THREE.Group();
+            marker.visible = false;
+            marker.add(
+                new THREE.Mesh(new THREE.SphereGeometry(0.03, 24, 24), new THREE.MeshBasicMaterial({ color: 0xff5a4d, transparent: true, opacity: 0.55 })),
+                new THREE.Mesh(new THREE.SphereGeometry(0.018, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffffff }))
+            );
+            var rings = [0, 1, 2].map(function () {
+                var m = new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 48), new THREE.MeshBasicMaterial({ color: 0xff8a7a, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+                marker.add(m); return m;
+            });
+            earth.add(marker);
+
+            var toVec = function (lon, lat) {
+                return new THREE.Vector3(Math.cos(lat * rad) * Math.cos(lon * rad), Math.sin(lat * rad), -Math.cos(lat * rad) * Math.sin(lon * rad));
+            };
+            var faceQuat = function (lon, lat) {
+                return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), lat * rad)
+                    .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2 - lon * rad));
+            };
+            earth.quaternion.copy(faceQuat(110, -2));
+
+            // posisi matahari sebenarnya (titik subsolar) dari waktu UTC saat ini
+            var sunLocal = function () {
+                var n = new Date(), h = n.getUTCHours() + n.getUTCMinutes() / 60;
+                var doy = (n - Date.UTC(n.getUTCFullYear(), 0, 0)) / 864e5;
+                var dec = -23.44 * Math.cos(2 * Math.PI / 365 * (doy + 10));
+                return toVec((12 - h) * 15, dec);
+            };
+            var nyata = true;
+            document.getElementById("btnSun").addEventListener("click", function () {
+                nyata = !nyata;
+                this.textContent = "Cahaya nyata: " + (nyata ? "aktif" : "mati");
+            });
+
+            var dragging = false, lastX = 0, lastY = 0, vx = 0, vy = 0, goal = null, idleAt = performance.now();
+            var AX = new THREE.Vector3(1, 0, 0), AY = new THREE.Vector3(0, 1, 0);
+            var rotateBy = function (dx, dy) {
+                earth.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(AY, dx).multiply(new THREE.Quaternion().setFromAxisAngle(AX, dy)));
+            };
+            canvas.addEventListener("pointerdown", function (e) {
+                dragging = true; goal = null; vx = vy = 0; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId);
+            });
+            canvas.addEventListener("pointermove", function (e) {
+                if (!dragging) return;
+                vx = (e.clientX - lastX) * 0.006; vy = (e.clientY - lastY) * 0.006; lastX = e.clientX; lastY = e.clientY;
+                rotateBy(vx, vy);
+            });
+            var stopDrag = function () { dragging = false; idleAt = performance.now(); };
+            canvas.addEventListener("pointerup", stopDrag);
+            canvas.addEventListener("pointercancel", stopDrag);
+            canvas.addEventListener("wheel", function (e) {
+                e.preventDefault();
+                camera.position.z = Math.min(5, Math.max(1.9, camera.position.z + e.deltaY * 0.002));
+            }, { passive: false });
+
+            var resizeG = function () { renderer.setSize(box.clientWidth, box.clientWidth, false); camera.aspect = 1; camera.updateProjectionMatrix(); };
+            addEventListener("resize", resizeG); resizeG();
+
+            var clock = new THREE.Clock();
+            (function loop() {
+                var t = clock.getElapsedTime();
+                if (!dragging) {
+                    if (goal) {
+                        earth.quaternion.slerp(goal, 0.06);
+                        if (earth.quaternion.angleTo(goal) < 0.002) goal = null;
+                    } else if (Math.abs(vx) > 0.0004 || Math.abs(vy) > 0.0004) {
+                        rotateBy(vx, vy); vx *= 0.95; vy *= 0.95;
+                    } else if (!reduceG && performance.now() - idleAt > 2500 && !marker.visible) {
+                        rotateBy(0.0025, 0);
+                    }
+                }
+                // cahaya: matahari nyata (ikut berputar bersama bumi) atau siang penuh
+                if (nyata) {
+                    sun.position.copy(sunLocal().applyQuaternion(earth.quaternion).multiplyScalar(5));
+                    ambient.intensity = 0.28; sun.intensity = 1.6;
+                } else {
+                    sun.position.set(-3, 2, 4); ambient.intensity = 0.5; sun.intensity = 1.2;
+                }
+                rings.forEach(function (r, i) {
+                    var k = ((t * 0.7) + i / 3) % 1;
+                    r.scale.setScalar(0.03 + k * 0.11); r.material.opacity = (1 - k) * 0.9;
+                });
+                renderer.render(scene, camera);
+                requestAnimationFrame(loop);
+            })();
+
+            window.tandai = function (lon, lat) {
+                var v = toVec(lon, lat);
+                marker.position.copy(v.clone().multiplyScalar(1.004));
+                marker.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), v);
+                marker.visible = true; goal = faceQuat(lon, lat); vx = vy = 0;
+            };
+            // lokasi yang sudah terambil sebelum globe siap
+            if (typeof sekarang !== "undefined" && sekarang) window.tandai(sekarang.lon, sekarang.lat);
+        } catch (e) {
+            console.warn("Globe gagal dimuat:", e);
+            var hint = document.getElementById("hint");
+            if (hint) hint.textContent = "Globe 3D gagal dimuat. Periksa koneksi internet lalu refresh.";
+        }
+    </script>
+</body>
+
+</html>
